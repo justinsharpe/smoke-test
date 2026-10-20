@@ -2,6 +2,9 @@ name: CI
 on:
   push:
   pull_request:
+# Smoke-test's selftest.d deliberately contains 2 unfixable failures + 1 skip to
+# prove the harness contract (exit code == unfixed failures, skip != fail, timeout
+# bounding). CI therefore asserts exit code 2 — a 0 here would mean the contract broke.
 jobs:
   selftest:
     runs-on: ubuntu-latest
@@ -10,4 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: python3 smoke_test.py --dir selftest.d
+      - run: |
+          python3 smoke_test.py --dir selftest.d
+          rc=$?
+          if [ "$rc" -eq 2 ]; then echo "contract OK: exit=2 as designed"; exit 0;
+          else echo "contract BROKEN: expected exit 2, got $rc"; exit 1; fi
